@@ -102,3 +102,6 @@ ENV/
 
 # Data folders and files
 word-representations/data
+
+# McClutter
+**/.DS_Store
