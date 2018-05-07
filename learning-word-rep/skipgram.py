@@ -6,26 +6,37 @@ import torch.nn.functional as F
 class Skipgram(nn.Module):
     """ A skip-gram model for learning word embeddings.
     Args:
+        - vocab_size (int): the size of the vocabulary
         - emb_dimensions (int): word embeddings dimensions
-        - context_size: number of words used as context
     """
     def __init__(self, vocab_size, emb_dimensions):
         super(Skipgram, self).__init__()
         self.embeddings = nn.Embedding(vocab_size, emb_dimensions)
-        self.linear = nn.Linear(emb_dimensions, vocab_size, bias=False)
+        self.out_embeddings = nn.Embedding(vocab_size, emb_dimensions)
 
-    def forward(self, words, contexts):
-        """ Calculates the log-probabilities for all words
-        given the inputs.
+    def forward(self, words, pos_contexts, neg_contexts):
+        """ Calculates the skip-gram loss using the negative sampling objective.
+        N is the batch size and c is the context size, usually equal to 2*w where
+        w is the window size before and after the target word.
         Args:
-            - inputs (tensor): (N, context_size), a tensor containing word indices
+            - words (tensor): (N), a tensor containing target word indices
+            - pos_contexts (tensor): (N, c), a tensor containing positive contexts
+            - neg_contexts (tensor): (N, c), a tensor containing negative contexts
         Returns:
-            - tensor: (N, vocab_size), the log-probabilities
+            - tensor: (1), the skip-gram loss.
         """
-        embedding = self.embeddings(words)
-        y = self.linear(embedding)
-        log_probs = F.log_softmax(y, dim=1)
+        target_emb = self.embeddings(words)
+        pos_emb = self.out_embeddings(pos_contexts)
+        neg_emb = self.out_embeddings(neg_contexts)
 
-        losses = torch.sum(torch.gather(log_probs, 1, contexts))
+        # Calculate loss from positive contexts
+        pos_similarity = torch.bmm(pos_emb, target_emb.unsqueeze(2)).squeeze()
+        pos_similarity = torch.sum(pos_similarity, dim=-1)
+        pos_loss = F.logsigmoid(pos_similarity).squeeze()
 
-        return -1 * torch.mean(losses)
+        # Calculate loss from negative contexts
+        neg_similarity = torch.bmm(neg_emb, target_emb.unsqueeze(2)).squeeze()
+        neg_similarity = torch.sum(neg_similarity, dim=-1)
+        neg_loss = F.logsigmoid(-neg_similarity).squeeze()
+
+        return -torch.mean(pos_loss + neg_loss)

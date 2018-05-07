@@ -1,5 +1,5 @@
 import argparse
-from data import SkipgramCorpus
+from corpus import SkipgramCorpus
 from skipgram import Skipgram
 import torch
 from torch.nn import NLLLoss
@@ -20,7 +20,7 @@ corpus_path = args['corpus_path']
 
 # Load corpus
 print('Loading {:s}'.format(corpus_path))
-corpus = SkipgramCorpus(corpus_path, vocab_size)
+corpus = SkipgramCorpus(corpus_path, vocab_size, window)
 print('Loaded corpus with {:d} words, {:d} sentences'.format(corpus.token_count, len(corpus.sentences)))
 
 # Create model (add 2 words for EOS and UNK)
@@ -36,14 +36,18 @@ batch_size = 128
 
 # Start training
 print('Training...')
-epochs = 5
+epochs = 3
 for ep in range(epochs):
     # Training corpus iteration
     training_loss = 0
-    for words, contexts in corpus.next_word_context_pair(window, batch_size):
+    for words, pos_contexts, neg_contexts in corpus.next_batch_neg_sampling(batch_size):
         # Clear gradients
         skipgram.zero_grad()
-        loss = skipgram(torch.tensor(words, dtype=torch.long).to(device), torch.tensor(contexts, dtype=torch.long).to(device))
+        # Convert to tensors and calculate loss
+        words_t = torch.tensor(words, dtype=torch.long).to(device)
+        pos_contexts_t = torch.tensor(pos_contexts, dtype=torch.long).to(device)
+        neg_contexts_t = torch.tensor(neg_contexts, dtype=torch.long).to(device)
+        loss = skipgram(words_t, pos_contexts_t, neg_contexts_t)
 
         # Update weights from loss
         loss.backward()
