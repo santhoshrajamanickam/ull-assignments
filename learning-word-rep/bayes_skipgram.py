@@ -21,22 +21,25 @@ class BayesianSkipgram(nn.Module):
     def forward(self, word, context):
         word_emb = self.embeddings(word)
         context_embs = self.embeddings(context)
-        k = context_embs.shape[0]
-        d = context_embs.shape[1]
-        concat_emb = torch.zeros(2 * d, requires_grad=True).to(device)
+        n_batch, n_context, n_dim = context_embs.shape
 
-        for i in range(context_embs.shape[0]):
-            concat_emb = concat_emb + F.relu(torch.cat((word_emb, context_embs[i])))
+        concat_emb = torch.cat((word_emb.expand(n_context, -1, -1).t(), context_embs), dim=-1)
+        concat_sum = torch.sum(F.relu(concat_emb), dim=1)
 
-        mu = self.affine_mu(concat_emb)
-        log_sigma2 = self.affine_sigma(concat_emb)
-        eps = torch.tensor(multivariate_normal(np.zeros(d), np.identity(d), k), dtype=torch.float).to(device)
+        mu = self.affine_mu(concat_sum)
+        log_sigma2 = self.affine_sigma(concat_sum)
+        eps = torch.tensor(multivariate_normal(np.zeros(n_dim), np.identity(n_dim), n_batch), dtype=torch.float).to(device)
         z = mu + eps * torch.sqrt(torch.exp(log_sigma2))
-        ck_sum = torch.sum(torch.gather(F.log_softmax(self.affine_ck(z), dim=0), 1, context.view(-1, 1)), dim=0)
+        ck_logprobs = F.log_softmax(self.affine_ck(z), dim=1)
+        ck_sum = ck_logprobs.gather(1, context).sum(dim=1)
+        ck_batch_loss = ck_sum.mean()
+
         mu_x = self.linear_L(self.L(word))
         sigma_x = F.softplus(self.linear_S(self.S(word)))
-        KL_div = torch.sum(torch.log(sigma_x) -0.5 * log_sigma2 + (torch.exp(log_sigma2) + (mu - mu_x)**2)/(2 * sigma_x**2) - 0.5)
+        KL_div = torch.log(sigma_x) -0.5 * log_sigma2 + (torch.exp(log_sigma2) + (mu - mu_x)**2)/(2 * sigma_x**2) - 0.5
+        KL_sum = KL_div.sum(dim=1)
+        KL_batch_loss = KL_sum.mean()
 
-        return -ck_sum + KL_div
+        return -ck_batch_loss + KL_batch_loss
 
 

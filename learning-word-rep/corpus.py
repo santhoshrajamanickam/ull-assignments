@@ -87,7 +87,7 @@ class SkipgramCorpus:
         processed = 0
         start = time.time()
         for batch_idx in range(0, len(self.sentences), batch_size):
-            if batch_idx - processed >= 100:
+            if batch_idx - processed >= 10000:
                 end = time.time() - start
                 print('processed batch {:d}, {:d} sentences in {:.1f} seconds'.format(batch_idx, batch_idx - processed, end))
                 start = time.time()
@@ -122,7 +122,7 @@ class SkipgramCorpus:
         processed = 0
         start = time.time()
         for batch_idx in range(0, len(self.sentences), batch_size):
-            if batch_idx - processed >= 100:
+            if batch_idx - processed >= 10000:
                 end = time.time() - start
                 print('processed batch {:d}, {:d} sentences in {:.1f} seconds'.format(batch_idx, batch_idx - processed, end))
                 start = time.time()

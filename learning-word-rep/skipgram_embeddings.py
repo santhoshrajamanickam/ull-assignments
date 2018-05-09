@@ -4,6 +4,7 @@ from skipgram import Skipgram
 import torch
 from torch.nn import NLLLoss
 from torch.optim import Adam
+import pickle
 
 # Read arguments from command line
 parser = argparse.ArgumentParser(description='Train word embeddings using a skip-gram model.')
@@ -31,7 +32,6 @@ skipgram = Skipgram(vocab_size + 2, emb_dimensions).to(device)
 loss_function = NLLLoss()
 optimizer = Adam(skipgram.parameters())
 prev_valid_loss = float('inf')
-embeddings = skipgram.embeddings.weight.detach()
 batch_size = 128
 
 # Start training
@@ -59,16 +59,10 @@ for ep in range(epochs):
     avg_train_loss = training_loss / (len(corpus.sentences) / batch_size)
     print('{:2d}/{:2d}: avg_train_loss = {:11.1f}'.format(ep+1, epochs, avg_train_loss))
 
-# Save embeddings
-embeddings = skipgram.embeddings.weight.detach()
-filename = '{:d}V_{:d}d_{:d}w.words'.format(vocab_size, emb_dimensions, window)
-with open(filename, 'w') as file:
-    # Omit the last 2 words, corresponding to UNK and EOS
-    for i in range(0, len(embeddings) - 2):
-        # Write actual word first
-        file.write(corpus.idx2word[i])
-        # Write values on the rest of the line
-        for value in embeddings[i]:
-            file.write(' {:.12f}'.format(value.item()))
-        file.write('\n')
-print('Saved embeddings to {:s}'.format(filename))
+# Save model
+filename = '{:d}V_{:d}d_{:d}w_Skipgram.pt'.format(vocab_size, emb_dimensions, window)
+torch.save(skipgram.state_dict(), filename)
+print('Saved model to {:s}'.format(filename))
+
+# Save word2idx
+pickle.dump(corpus.word2idx, open('word2idx.p', 'wb'))
