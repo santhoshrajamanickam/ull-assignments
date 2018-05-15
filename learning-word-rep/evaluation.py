@@ -6,7 +6,6 @@ import pickle
 import re
 
 class Eval:
-
     def __init__(self, model, window_size=None):
         self.model = model
         self.window_size = window_size
@@ -14,46 +13,61 @@ class Eval:
         self.candidates = defaultdict(lambda : set())
 
     def load_test_sentences(self, test_sentences_path, candidates_path):
-
+        # Read sentences with targets and contexts
         with open(test_sentences_path) as file:
             for line in file:
-                num_padding = 0
                 # Split into tokens
-                sentence = line.strip().split()
-                target_word = sentence.pop(0)
-                id_sentence = sentence.pop(0)
-                target_position = sentence.pop(0)
-                # Remove the target word
-                sentence.pop(int(target_position))
+                values = line.strip().split()
+                target_word = values[0]
+                id_sentence = values[1]
+                init_target_position = int(values[2])
+
+                # Sentence with punctuation
+                sentence_all = values[3:]
+                # Sentence without punctuation
+                sentence = []
+                # Keep track of the new position of the target
+                target_position = init_target_position
+                for i, word in enumerate(sentence_all):
+                    if word not in string.punctuation:
+                        # If current index is target, new target_position is
+                        # length of sentence without punctuation
+                        if i == init_target_position:
+                            target_position = len(sentence)
+                        sentence.append(word)
+
                 # Extract context words
                 start = int(target_position) - self.window_size
-                end = int(target_position) + 1 + self.window_size
+                end = int(target_position) + self.window_size
+                # Calculate padding if necessary
+                start_padding = 0
+                end_padding = 0
                 if start < 0:
-                    num_padding += abs(start)
+                    start_padding = abs(start)
                     start = 0
                 if end > len(sentence):
-                    num_padding += end - len(sentence)
+                    end_padding = end - len(sentence)
                     end = len(sentence)
-                context_words = sentence[start:int(target_position)] + sentence[int(target_position):end]
-                # Remove punctuation
-                context_words = [s.translate(str.maketrans('', '', string.punctuation)) for s in context_words]
-                context_words = [s for s in context_words if s]
-                context_words += ['<s>' for padding_count in range(0,num_padding)]
-                # print(context_words)
+
+                # Add start padding
+                context_words = ['<s>'] * start_padding
+                # Add context words
+                context_words += sentence[start:target_position] + sentence[target_position+1:end]
+                # Add end padding
+                context_words += ['<s>'] * end_padding
+
                 self.test_sentences[target_word][id_sentence] = context_words
 
+        # Read candidates per word
         with open(candidates_path) as file:
             for line in file:
-                # print(line)
-                candidates =re.split('\W+',line)
-                target_word = candidates.pop(0)
-                candidates.pop(0)
-                candidates = [s for s in candidates if s]
-                self.candidates[target_word] = candidates
+                # Remove all sorts of punctuation
+                candidates = re.split('\W+',line)
+                target_word = candidates[0]
+                self.candidates[target_word] = candidates[2:]
 
 
     def score_context_words(self):
-
         missing_count = 0
         target_count = 0
         cos = torch.nn.CosineSimilarity(dim=0)
@@ -92,9 +106,9 @@ class Eval:
                         candidate_embs[candidate] = torch.zeros(target_emb.shape)
 
                 for sentence_id in self.test_sentences[target_word].keys():
-                    file.write('RANKED|\t')
+                    file.write('RANKED ')
                     file.write(str(target_word) + '\t')
-                    file.write(str(sentence_id)+'|')
+                    file.write(str(sentence_id))
 
                     for candidate in self.candidates[target]:
                         score = 0
@@ -109,7 +123,7 @@ class Eval:
 
                         score /= num_context + 1
                         score = score.data.item()
-                        file.write('\t' + str(candidate) + '\t' + str(score)+'|')
+                        file.write('\t' + str(candidate) + ' ' + str(score))
                     file.write('\n')
 
 
