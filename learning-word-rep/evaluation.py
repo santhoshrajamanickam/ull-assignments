@@ -143,7 +143,7 @@ class Eval:
             bayesian.load_state_dict(torch.load('10000V_300d_5w_BayesianSkipgram.pt', map_location='cpu'))
 
             # print(self.test_sentences.keys())
-            file = open('./lst_bayesian.out', 'w')
+            file = open('./lst_bayesian_out', 'w')
 
             for target_word in self.test_sentences.keys():
                 words = target_word.split(".")
