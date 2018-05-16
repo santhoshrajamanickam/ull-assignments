@@ -25,6 +25,7 @@ class Skipgram(nn.Module):
         Returns:
             - tensor: (1), the skip-gram loss.
         """
+        # Get word and context embeddings
         target_emb = self.embeddings(words)
         pos_emb = self.out_embeddings(pos_contexts)
         neg_emb = self.out_embeddings(neg_contexts)

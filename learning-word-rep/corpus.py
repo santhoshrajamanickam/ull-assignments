@@ -12,7 +12,7 @@ class SkipgramCorpus:
         - vocab_size (int): the size of the vocabulary
         - window (int): number of words used as context in the skip-gram
     """
-    def __init__(self, corpus_path, vocab_size, window):
+    def __init__(self, corpus_path, vocab_size, window=0):
         token_count = 0
         line_count = 0
         # First pass through the corpus: get statistics and vocabulary
@@ -89,7 +89,7 @@ class SkipgramCorpus:
         for batch_idx in range(0, len(self.sentences), batch_size):
             if batch_idx - processed >= 10000:
                 end = time.time() - start
-                print('processed batch {:d}, {:d} sentences in {:.1f} seconds'.format(batch_idx, batch_idx - processed, end))
+                print('processed sentence {:d}, {:d} sentences in {:.1f} seconds'.format(batch_idx, batch_idx - processed, end))
                 start = time.time()
                 processed = batch_idx
 
@@ -124,7 +124,7 @@ class SkipgramCorpus:
         for batch_idx in range(0, len(self.sentences), batch_size):
             if batch_idx - processed >= 10000:
                 end = time.time() - start
-                print('processed batch {:d}, {:d} sentences in {:.1f} seconds'.format(batch_idx, batch_idx - processed, end))
+                print('processed sentence {:d}, {:d} sentences in {:.1f} seconds'.format(batch_idx, batch_idx - processed, end))
                 start = time.time()
                 processed = batch_idx
 
@@ -144,3 +144,54 @@ class SkipgramCorpus:
                 neg_contexts = batch_neg_contexts[valid_lengths_mask][:, context_idx + target_idx]
 
                 yield targets, pos_contexts, neg_contexts
+
+class EmbedAlignCorpus:
+    """
+        A class with methods to read and generate batches from a corpus
+        to train an embed-align model.
+        Args:
+            - corpus1_path (str): path of corpus in language 1
+            - corpus2_path (str): path of corpus in language 2
+            - vocab_size (int): the size of the vocabulary (same
+                for both languages)
+        """
+    def __init__(self, corpus1_path, corpus2_path, vocab_size):
+        self.corpus1 = SkipgramCorpus(corpus1_path, vocab_size)
+        self.corpus2 = SkipgramCorpus(corpus2_path, vocab_size)
+        self.n_sentences = min(len(self.corpus1.sentences), len(self.corpus2.sentences))
+
+    def next_pair(self):
+        """
+        A generator of corresponding sentence pairs in both languages.
+        Returns:
+            - sent1 (ndarray): contains word indices for language 1
+            - sent2 (ndarray): contains word indices for language 2
+        """
+        for i in range(self.n_sentences):
+            sent1 = self.corpus1.sentences[i, :self.corpus1.sent_lengths[i]]
+            sent2 = self.corpus2.sentences[i, :self.corpus2.sent_lengths[i]]
+            yield sent1, sent2
+
+    def next_batch(self, batch_size):
+        """
+        A generator of batches for training an embed-align model.
+        Args:
+            - batch_size (int): size of the batch
+        Returns:
+            - sent1 (ndarray): batch of word indices (int) for language 1
+            - sent2 (ndarray): batch of word indices (int) for language 2
+        """
+        processed = 0
+        start = time.time()
+        for batch_idx in range(0, self.n_sentences, batch_size):
+            if batch_idx - processed >= 10000:
+                end = time.time() - start
+                print('processed sentence {:d}, {:d} sentences in {:.1f} seconds'.format(batch_idx, batch_idx - processed, end))
+                start = time.time()
+                processed = batch_idx
+            # Compute maximum length in the batches for efficiency
+            max_batch1_length = np.max(self.corpus1.sent_lengths[batch_idx:batch_idx + batch_size])
+            max_batch2_length = np.max(self.corpus2.sent_lengths[batch_idx:batch_idx + batch_size])
+
+            yield (self.corpus1.sentences[batch_idx:batch_idx + batch_size, :max_batch1_length],
+                   self.corpus2.sentences[batch_idx:batch_idx + batch_size, :max_batch2_length])
