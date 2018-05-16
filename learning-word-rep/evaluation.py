@@ -106,8 +106,8 @@ class Eval:
                         candidate_embs[candidate] = torch.zeros(target_emb.shape)
 
                 for sentence_id in self.test_sentences[target_word].keys():
-                    file.write('RANKED ')
-                    file.write(str(target_word) + '\t')
+                    file.write('RANKED\t')
+                    file.write(str(target_word)+' ')
                     file.write(str(sentence_id))
 
                     for candidate in self.candidates[target]:

@@ -93,6 +93,9 @@ if __name__ == '__main__':
     ignored = 0
     for gold_instance_id, gold_weights in gold_data.items():
         #print(gold_instance_id)
+        # TEMPORARY FIX TODO: handle missing target words
+        if gold_instance_id not in eval_data:
+            continue
         eval_weights = eval_data[gold_instance_id]      
         gap = GeneralizedAveragePrecision.calc(gold_weights, eval_weights, randomize)
         if (gap < 0): # this happens when there is nothing left to rank after filtering the multi-word expressions
