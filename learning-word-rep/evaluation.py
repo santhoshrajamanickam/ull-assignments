@@ -94,9 +94,11 @@ class Eval:
                 if target in word2idx:
                     target_emb = skipgram.embeddings(torch.tensor(word2idx[target], dtype=torch.long))
                 else:
+                    # target_emb = torch.zeros(target_emb.shape)
+                    target_emb = skipgram.embeddings(torch.tensor(word2idx['<unk>'], dtype=torch.long))
                     print('missing target: ' + str(target_word))
                     missing_count += 1
-                    continue
+                    # continue
 
                 candidate_embs =defaultdict()
                 for candidate in self.candidates[target]:
