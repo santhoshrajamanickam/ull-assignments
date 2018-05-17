@@ -16,6 +16,22 @@ class Eval:
         self.sentences = defaultdict(lambda: defaultdict(lambda: []))
         self.target_pos = defaultdict(lambda: defaultdict(lambda: []))
         self.candidates = defaultdict(lambda : set())
+        self.sentences1 = []
+        self.sentences2 = []
+
+    def load_translation_sentences(self, path1, path2):
+        def read_sentences(path):
+            sentences = []
+            with open(path1) as file1:
+                for line in file1:
+                    line_words = line.translate(str.maketrans('', '', string.punctuation))
+                    sentence = line_words.strip().split()
+                    sentences.append(sentence)
+            return sentences
+
+        self.sentences1 = read_sentences(path1)
+        self.sentences2 = read_sentences(path2)
+
 
     def load_test_sentences(self, test_sentences_path, candidates_path):
         # Read sentences with targets and contexts
@@ -77,7 +93,7 @@ class Eval:
                 target_end = line.index('.')
                 target_word = line[:target_end]
                 # The candidates are given after two colons ::
-                candidates_all = line.split('::')[1]
+                candidates_all = line.strip().split('::')[1]
                 # Each candidate is separated by a semi colon
                 candidates_list = candidates_all.split(';')
                 for c in candidates_list:
@@ -193,7 +209,7 @@ class Eval:
             embedalign.load_state_dict(torch.load('10000V_300d_EmbedAlign.pt', map_location='cpu'))
 
             # print(self.test_sentences.keys())
-            file = open('./lst_embedalign.out', 'w')
+            file = open('./lst_embedalign_out', 'w')
 
             for target_word in self.sentences.keys():
                 words = target_word.split(".")
@@ -221,6 +237,30 @@ class Eval:
                         score = score.sum().data.item()
                         file.write('\t' + str(candidate) + ' ' + str(score))
                     file.write('\n')
+
+    def score_aer(self):
+        # Load word2idx used to train the model
+        word2idx1 = pickle.load(open('word2idx1.p', 'rb'))
+        word2idx2 = pickle.load(open('word2idx2.p', 'rb'))
+        # Initialize model (add 2 words to vocab_size for UNK and EOS)
+        embedalign = EmbedAlign(10002, 10002, emb_dimensions=300)
+        # Load from training results
+        embedalign.load_state_dict(torch.load('10000V_300d_EmbedAlign.pt', map_location='cpu'))
+
+        file = open('./embedalign.naacl', 'w')
+
+        for i, sentence in enumerate(self.sentences1):
+            # Get target and context indices
+            sentence_idx_t = torch.tensor([[word2idx1.get(word, word2idx1['<unk>']) for word in sentence]], dtype=torch.long)
+            mu, _ = embedalign_forward(embedalign, sentence_idx_t)
+            yk_log_probs = F.log_softmax(embedalign.affine2_L2(F.relu(embedalign.affine1_L2(mu))), dim=-1)
+
+            for f, word in enumerate(self.sentences2[i]):
+                prob_align = yk_log_probs[:, :, word2idx2.get(word, word2idx2['<unk>'])]
+                e = torch.argmin(prob_align, dim=-1).data.item()
+                file.write(str(i + 1) + ' ' + str(e) + ' ' + str(f) + "\n")
+
+        file.close()
 
 
 
