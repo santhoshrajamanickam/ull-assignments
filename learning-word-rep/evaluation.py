@@ -69,9 +69,25 @@ class Eval:
         with open(candidates_path) as file:
             for line in file:
                 # Remove all sorts of punctuation
-                candidates = re.split('\W+',line)
-                target_word = candidates[0]
-                self.candidates[target_word] = candidates[2:]
+                #candidates = re.split('\W+',line)
+                #target_word = candidates[0]
+                #self.candidates[target_word] = candidates[2:]
+
+                # A word is given in the form word.x
+                target_end = line.index('.')
+                target_word = line[:target_end]
+                # The candidates are given after two colons ::
+                candidates_all = line.split('::')[1]
+                # Each candidate is separated by a semi colon
+                candidates_list = candidates_all.split(';')
+                for c in candidates_list:
+                    # Don't take into account multi-word expressions
+                    # separated by a space
+                    if c.find(' ') <= 0:
+                        self.candidates[target_word].add(c)
+
+
+
 
 
     def score_context_words(self):
