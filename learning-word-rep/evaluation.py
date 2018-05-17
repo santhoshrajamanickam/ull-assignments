@@ -259,3 +259,63 @@ def embedalign_forward(model, sentence):
     sigma = F.softplus(model.affine2_sigma(F.relu(model.affine1_sigma(out))))
 
     return mu, sigma
+
+
+def write_naacl_format(self, test_alignments, path):
+
+    naacl_file = open(path, 'w')
+    for index, item in enumerate(test_alignments):
+        for elements in item:
+            e, f = elements
+            if e == 0:
+                    e = 1
+            naacl_file.write(str(index+1) + ' ' + str(e) + ' ' + str(f) + "\n")
+            # print(index, e, f)
+    naacl_file.close()
+
+def calculate_aer(self, eval_alignement_path, test_alignments):
+
+    gold_standard = read_naacl_alignments(eval_alignement_path)
+
+    metric = AERSufficientStatistics()
+
+    for gold_alignments, test_alignments in zip(gold_standard, test_alignments):
+        metric.update(sure=gold_alignments[0], probable=gold_alignments[1], predicted=test_alignments)
+
+    aer = metric.aer()
+
+    self.aer.append(aer)
+
+    print("AER: {}".format(aer))
+
+def viterbi_alignment(self):
+
+    testing_size = len(self.testing_english)
+    test_alignments = []
+
+    for k in range(testing_size):
+
+        l = len(self.testing_english[k])
+        m = len(self.testing_french[k])
+
+        alignment = set()
+
+        if self.model == 'IBM1':
+            for i in range(0, m):
+                all_alignments = []
+                for j in range(0, l):
+                    all_alignments.append(
+                        self.t[(self.testing_french[k][i], self.testing_english[k][j])] * self.q[(j, i + 1, l, m)])
+                alignment.add((all_alignments.index(max(all_alignments)), i + 1))
+            test_alignments.append(alignment)
+        else:
+            for i in range(0, m):
+                all_alignments = []
+                for j in range(0, l):
+                    jump = self.jump(j, i, l, m)
+                    all_alignments.append(
+                        self.t[(self.testing_french[k][i], self.testing_english[k][j])] * self.q[0, int(jump)])
+                alignment.add((all_alignments.index(max(all_alignments)), i + 1))
+            test_alignments.append(alignment)
+
+    return test_alignments
