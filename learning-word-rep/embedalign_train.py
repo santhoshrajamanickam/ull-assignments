@@ -71,4 +71,4 @@ print('Saved model to {:s}'.format(filename))
 
 # Save word2idx
 pickle.dump(corpus.corpus1.word2idx, open('word2idx1.p', 'wb'))
-pickle.dump(corpus.corpus1.word2idx, open('word2idx2.p', 'wb'))
+pickle.dump(corpus.corpus2.word2idx, open('word2idx2.p', 'wb'))

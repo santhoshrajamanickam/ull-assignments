@@ -22,7 +22,7 @@ class Eval:
     def load_translation_sentences(self, path1, path2):
         def read_sentences(path):
             sentences = []
-            with open(path1) as file1:
+            with open(path) as file1:
                 for line in file1:
                     line_words = line.translate(str.maketrans('', '', string.punctuation))
                     sentence = line_words.strip().split()
