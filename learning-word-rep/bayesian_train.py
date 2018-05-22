@@ -31,7 +31,7 @@ skipgram = BayesianSkipgram(vocab_size + 2, emb_dimensions).to(device)
 
 # Set up training
 optimizer = Adam(skipgram.parameters())
-batch_size = 128
+batch_size = 2
 n_batches = len(corpus.sentences) / batch_size
 
 # Start training

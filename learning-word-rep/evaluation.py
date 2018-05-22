@@ -243,9 +243,10 @@ class Eval:
         word2idx1 = pickle.load(open('word2idx1.p', 'rb'))
         word2idx2 = pickle.load(open('word2idx2.p', 'rb'))
         # Initialize model (add 2 words to vocab_size for UNK and EOS)
-        embedalign = EmbedAlign(10002, 10002, emb_dimensions=300)
-        # Load from training results
-        embedalign.load_state_dict(torch.load('10000V_300d_EmbedAlign.pt', map_location='cpu'))
+        #embedalign = EmbedAlign(10002, 10002, emb_dimensions=300)
+        #embedalign.load_state_dict(torch.load('10000V_300d_EmbedAlign.pt', map_location='cpu'))
+        embedalign = EmbedAlign(10002, 10002, emb_dimensions=100)
+        embedalign.load_state_dict(torch.load('10000V_100d_EmbedAlign.pt', map_location='cpu'))
 
         file = open('./embedalign.naacl', 'w')
 
@@ -255,10 +256,18 @@ class Eval:
             mu, _ = embedalign_forward(embedalign, sentence_idx_t)
             yk_log_probs = F.log_softmax(embedalign.affine2_L2(F.relu(embedalign.affine1_L2(mu))), dim=-1)
 
-            for f, word in enumerate(self.sentences2[i]):
-                prob_align = yk_log_probs[:, :, word2idx2.get(word, word2idx2['<unk>'])]
-                e = torch.argmin(prob_align, dim=-1).data.item()
+            sentence2_idx_t = torch.tensor([[word2idx2.get(word, word2idx2['<unk>']) for word in self.sentences2[i]]], dtype=torch.long)
+
+            for e, row in enumerate(yk_log_probs[0]):
+                probs = row[sentence2_idx_t]
+                f = torch.argmin(probs).data.item()
                 file.write(str(i + 1) + ' ' + str(e) + ' ' + str(f) + "\n")
+
+            #for f, word in enumerate(self.sentences2[i]):
+            #    index = word2idx2.get(word, word2idx2['<unk>'])
+            #    prob_align = yk_log_probs[:, :, index]
+            #    e = torch.argmin(prob_align, dim=-1).data.item()
+            #    file.write(str(i + 1) + ' ' + str(e) + ' ' + str(f) + "\n")
 
         file.close()
 
@@ -312,21 +321,6 @@ def write_naacl_format(self, test_alignments, path):
             naacl_file.write(str(index+1) + ' ' + str(e) + ' ' + str(f) + "\n")
             # print(index, e, f)
     naacl_file.close()
-
-def calculate_aer(self, eval_alignement_path, test_alignments):
-
-    gold_standard = read_naacl_alignments(eval_alignement_path)
-
-    metric = AERSufficientStatistics()
-
-    for gold_alignments, test_alignments in zip(gold_standard, test_alignments):
-        metric.update(sure=gold_alignments[0], probable=gold_alignments[1], predicted=test_alignments)
-
-    aer = metric.aer()
-
-    self.aer.append(aer)
-
-    print("AER: {}".format(aer))
 
 def viterbi_alignment(self):
 
