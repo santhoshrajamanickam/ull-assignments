@@ -243,10 +243,8 @@ class Eval:
         word2idx1 = pickle.load(open('word2idx1.p', 'rb'))
         word2idx2 = pickle.load(open('word2idx2.p', 'rb'))
         # Initialize model (add 2 words to vocab_size for UNK and EOS)
-        #embedalign = EmbedAlign(10002, 10002, emb_dimensions=300)
-        #embedalign.load_state_dict(torch.load('10000V_300d_EmbedAlign.pt', map_location='cpu'))
-        embedalign = EmbedAlign(10002, 10002, emb_dimensions=100)
-        embedalign.load_state_dict(torch.load('10000V_100d_EmbedAlign.pt', map_location='cpu'))
+        embedalign = EmbedAlign(10002, 10002, emb_dimensions=300)
+        embedalign.load_state_dict(torch.load('10000V_300d_EmbedAlign.pt', map_location='cpu'))
 
         file = open('./embedalign.naacl', 'w')
 
@@ -262,12 +260,6 @@ class Eval:
                 probs = row[sentence2_idx_t]
                 f = torch.argmin(probs).data.item()
                 file.write(str(i + 1) + ' ' + str(e) + ' ' + str(f) + "\n")
-
-            #for f, word in enumerate(self.sentences2[i]):
-            #    index = word2idx2.get(word, word2idx2['<unk>'])
-            #    prob_align = yk_log_probs[:, :, index]
-            #    e = torch.argmin(prob_align, dim=-1).data.item()
-            #    file.write(str(i + 1) + ' ' + str(e) + ' ' + str(f) + "\n")
 
         file.close()
 
@@ -321,35 +313,3 @@ def write_naacl_format(self, test_alignments, path):
             naacl_file.write(str(index+1) + ' ' + str(e) + ' ' + str(f) + "\n")
             # print(index, e, f)
     naacl_file.close()
-
-def viterbi_alignment(self):
-
-    testing_size = len(self.testing_english)
-    test_alignments = []
-
-    for k in range(testing_size):
-
-        l = len(self.testing_english[k])
-        m = len(self.testing_french[k])
-
-        alignment = set()
-
-        if self.model == 'IBM1':
-            for i in range(0, m):
-                all_alignments = []
-                for j in range(0, l):
-                    all_alignments.append(
-                        self.t[(self.testing_french[k][i], self.testing_english[k][j])] * self.q[(j, i + 1, l, m)])
-                alignment.add((all_alignments.index(max(all_alignments)), i + 1))
-            test_alignments.append(alignment)
-        else:
-            for i in range(0, m):
-                all_alignments = []
-                for j in range(0, l):
-                    jump = self.jump(j, i, l, m)
-                    all_alignments.append(
-                        self.t[(self.testing_french[k][i], self.testing_english[k][j])] * self.q[0, int(jump)])
-                alignment.add((all_alignments.index(max(all_alignments)), i + 1))
-            test_alignments.append(alignment)
-
-    return test_alignments
