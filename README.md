@@ -4,3 +4,5 @@ A repository of practical assignments for the Unsupervised Language Learning cou
 
 - [Practical 1: Word Representations](word-representations/)
 - [Practical 2: Learning Word Representations](learning-word-rep/)
+- [Practical 3: Evaluating Sentence Representations](sent-eval/)
+
