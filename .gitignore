@@ -106,4 +106,6 @@ ENV/
 # Data folders and files
 word-representations/data
 learning-word-rep/data
+sent-eval/data
+sent-eval/models
 **/.idea
