@@ -1,16 +1,6 @@
 ## Evaluating Sentence Representations
 
-The following structure is required:
+We used two separate notebooks to evaluate Skip-gram and Embed-align using SentEval:
 
-```
-.
-├── data
-│   └── europarl
-│       ├── training.en
-│       └── training.fr
-└── models
-    ├── model.best.validation.aer.ckpt.data-00000-of-00001
-    ├── model.best.validation.aer.ckpt.index
-    ├── model.best.validation.aer.ckpt.meta
-    └── tokenizer.pickle
-```
+- [Skip-gram evaluation](senteval_skipgram.ipynb)
+- [Embed-align evaluation](senteval_embedalign.ipynb)
